@@ -30,6 +30,7 @@ class ExampleService:
     def start(self):
         """Code to be run before the service's main loop"""
         # Start up code
+
         # This snippet creates a pipe that we have to close properly when the
         # service terminates
         if not os.path.exists(ExampleService.FIFO):
@@ -38,8 +39,11 @@ class ExampleService:
         self.logger.info('Named pipe set up')
         # Wait a bit
         time.sleep(self.delay)
+
         # systemctl will wait until this notification is sent
+        # Tell systemd that we are ready to run the service
         systemd.daemon.notify('READY=1')
+
         # Run the service's main loop
         self.run()
 
@@ -60,6 +64,7 @@ class ExampleService:
         """Clean up after the service's main loop"""
         # Tell systemd that we received the stop signal
         systemd.daemon.notify('STOPPING=1')
+
         # Put the service's cleanup code here.
         self.logger.info('Cleaning up...')
         if os.path.exists(ExampleService.FIFO):
@@ -68,6 +73,7 @@ class ExampleService:
             self.logger.info('Named pipe removed')
         else:
             self.logger.error('Named pipe not found, nothing to clean up')
+
         # Exit to finally stop the serivce
         sys.exit(0)
 
