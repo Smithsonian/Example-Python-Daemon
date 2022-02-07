@@ -8,6 +8,7 @@ class MyService:
     FIFO = '/tmp/myservice_pipe'
 
     def __init__(self, delay=5):
+        # Put service start up code here
         self.logger = self._init_logger()
         self.delay = delay
         if not os.path.exists(MyService.FIFO):
@@ -24,9 +25,10 @@ class MyService:
         logger.addHandler(stdout_handler)
         return logger
 
-    def start(self):
+    def run(self):
         try:
             while True:
+                # Put the daemon's main loop here
                 time.sleep(self.delay)
                 self.logger.info('Tick')
         except KeyboardInterrupt:
@@ -34,6 +36,7 @@ class MyService:
             self.stop()
 
     def stop(self):
+        # Put the daemon's cleanup code here.
         self.logger.info('Cleaning up...')
         if os.path.exists(MyService.FIFO):
             os.close(self.fifo)
@@ -46,4 +49,4 @@ class MyService:
 
 if __name__ == '__main__':
     service = MyService()
-    service.start()
+    service.run()
