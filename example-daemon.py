@@ -32,9 +32,9 @@ class ExampleService:
         # Start up code
         # This snippet creates a pipe that we have to close properly when the
         # service terminates
-        if not os.path.exists(MyService.FIFO):
-            os.mkfifo(MyService.FIFO)
-        self.fifo = os.open(MyService.FIFO, os.O_RDWR | os.O_NONBLOCK)
+        if not os.path.exists(ExampleService.FIFO):
+            os.mkfifo(ExampleService.FIFO)
+        self.fifo = os.open(ExampleService.FIFO, os.O_RDWR | os.O_NONBLOCK)
         self.logger.info('Named pipe set up')
         # Wait a bit
         time.sleep(self.delay)
@@ -44,7 +44,7 @@ class ExampleService:
         self.run()
 
     def run(self):
-f        """Run the main service loop"""
+        """Run the main service loop"""
         try:
             while True:
                 # Put the service's main loop here
@@ -62,9 +62,9 @@ f        """Run the main service loop"""
         systemd.daemon.notify('STOPPING=1')
         # Put the service's cleanup code here.
         self.logger.info('Cleaning up...')
-        if os.path.exists(MyService.FIFO):
+        if os.path.exists(ExampleService.FIFO):
             os.close(self.fifo)
-            os.remove(MyService.FIFO)
+            os.remove(ExampleService.FIFO)
             self.logger.info('Named pipe removed')
         else:
             self.logger.error('Named pipe not found, nothing to clean up')
