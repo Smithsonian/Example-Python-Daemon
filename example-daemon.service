@@ -1,13 +1,11 @@
 [Unit]
 Description=Example Python Daemon
-After=network.target
 
 [Service]
-User=pgrimes
-Type=simple
+Type=notify
 Environment=PYTHONUNBUFFERED=1
 KillSignal=SIGINT
-ExecStart=/usr/bin/python /home/pgrimes/Software/GitHub/Example-Python-Daemon/example-daemon.py
+ExecStart=/usr/bin/python3 /home/pgrimes/Software/GitHub/Example-Python-Daemon/example-daemon.py
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import time
-
+import systemd.daemon
 
 class MyService:
     FIFO = '/tmp/myservice_pipe'
@@ -48,5 +48,10 @@ class MyService:
 
 
 if __name__ == '__main__':
+    # Do start up stuff
     service = MyService()
+    time.sleep(5)
+    # systemctl will wait until this notification is sent
+    systemd.daemon.notify('READY=1')
+    # Run the daemon
     service.run()
