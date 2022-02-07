@@ -1,0 +1,11 @@
+[Unit]
+Description=Example Python Daemon
+After=network.target
+
+[Service]
+User=pgrimes
+Type=simple
+ExecStart=/usr/bin/python /home/pgrimes/Software/GitHub/Example-Python-Daemon/example-daemon.py
+
+[Install]
+WantedBy=multi-user.target
