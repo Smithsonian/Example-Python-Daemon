@@ -45,7 +45,7 @@ class ExampleSmaxService:
         time.sleep(self.delay)
 
         # Set up the time for the next logging action
-        self._next_log_time = datetime.now() + self.logging_interval
+        self._next_log_time = time.now() + self.logging_interval
 
         # systemctl will wait until this notification is sent
         # Tell systemd that we are ready to run the service
