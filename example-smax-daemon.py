@@ -49,7 +49,7 @@ class ExampleSmaxService:
 
         # systemctl will wait until this notification is sent
         # Tell systemd that we are ready to run the service
-        systemd.daemon.notify('READY=1')
+        systemd.daemon.notify(systemd.daemon.Notification.READY)
 
         # Run the service's main loop
         self.run()
