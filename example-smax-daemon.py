@@ -71,12 +71,12 @@ class ExampleSmaxService:
     def smax_logging_action(self):
         """Run the code to write logging data to SMAX"""
         # Gather data
-        logging_data = random.randrange(12.1, 14.2)
+        logging_data = random.uniform(10, 14)
 
         # write code to SMA-X
         self.logger.info(f'Pretending to Write {logging_data} to SMAX ')
         # Simulate a network delay
-        time.sleep(random.randrange(0.01, 0.2))
+        time.sleep(random.uniform(0.01, 0.2))
 
 
     def stop(self):
