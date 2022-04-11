@@ -12,7 +12,7 @@ class ExampleSmaxService:
     # when the service is stopped
     FIFO = '/tmp/myservice_pipe'
 
-    def __init__(self, delay=1, logging_interval=datetime.timedelta(seconds=5)):
+    def __init__(self, delay=1, logging_interval=5):
         """Service object initialization code"""
         self.logger = self._init_logger()
         self._scheduler = sched.scheduler(time.time, time.sleep)
