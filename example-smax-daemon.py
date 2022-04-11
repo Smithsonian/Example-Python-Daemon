@@ -82,7 +82,7 @@ class ExampleSmaxService:
     def stop(self):
         """Clean up after the service's main loop"""
         # Tell systemd that we received the stop signal
-        systemd.daemon.notify('STOPPING=1')
+        systemd.daemon.notify(systemd.daemon.Notification.STOPPING)
 
         # Put the service's cleanup code here.
         self.logger.info('Cleaning up...')
