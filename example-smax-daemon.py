@@ -37,9 +37,9 @@ class ExampleSmaxService:
 
         # This snippet creates a pipe that we have to close properly when the
         # service terminates
-        if not os.path.exists(ExampleService.FIFO):
-            os.mkfifo(ExampleService.FIFO)
-        self.fifo = os.open(ExampleService.FIFO, os.O_RDWR | os.O_NONBLOCK)
+        if not os.path.exists(ExampleSmaxService.FIFO):
+            os.mkfifo(ExampleSmaxService.FIFO)
+        self.fifo = os.open(ExampleSmaxService.FIFO, os.O_RDWR | os.O_NONBLOCK)
         self.logger.info('Named pipe set up')
         # Wait a bit
         time.sleep(self.delay)
@@ -86,9 +86,9 @@ class ExampleSmaxService:
 
         # Put the service's cleanup code here.
         self.logger.info('Cleaning up...')
-        if os.path.exists(ExampleService.FIFO):
+        if os.path.exists(ExampleSmaxService.FIFO):
             os.close(self.fifo)
-            os.remove(ExampleService.FIFO)
+            os.remove(ExampleSmaxService.FIFO)
             self.logger.info('Named pipe removed')
         else:
             self.logger.error('Named pipe not found, nothing to clean up')
