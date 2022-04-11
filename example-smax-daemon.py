@@ -15,7 +15,6 @@ class ExampleSmaxService:
     def __init__(self, delay=1, logging_interval=5):
         """Service object initialization code"""
         self.logger = self._init_logger()
-        self._scheduler = sched.scheduler(time.time, time.sleep)
 
         self.delay = delay
         self.logging_interval = logging_interval
