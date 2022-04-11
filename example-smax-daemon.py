@@ -2,21 +2,26 @@ import logging
 import os
 import sys
 import time
+
 import systemd.daemon
 
-class ExampleService:
+import random
+
+class ExampleSmaxService:
     # Specify the path for a resource that we open and must close correctly
     # when the service is stopped
     FIFO = '/tmp/myservice_pipe'
 
-    def __init__(self, delay=5):
+    def __init__(self, delay=1, logging_interval=datetime.timedelta(seconds=5)):
         """Service object initialization code"""
-        # Put service start up code here
         self.logger = self._init_logger()
+        self._scheduler = sched.scheduler(time.time, time.sleep)
+
         self.delay = delay
+        self.logging_interval = logging_interval
 
         # Log that we managed to create the instance
-        self.logger.info('Example-Daemon instance created')
+        self.logger.info('Example-SMAX-Daemon instance created')
 
     def _init_logger(self):
         logger = logging.getLogger(__name__)
@@ -40,6 +45,9 @@ class ExampleService:
         # Wait a bit
         time.sleep(self.delay)
 
+        # Set up the time for the next logging action
+        self._next_log_time = datetime.now() + self.logging_interval
+
         # systemctl will wait until this notification is sent
         # Tell systemd that we are ready to run the service
         systemd.daemon.notify('READY=1')
@@ -51,14 +59,26 @@ class ExampleService:
         """Run the main service loop"""
         try:
             while True:
-                # Put the service's main loop here
-                time.sleep(self.delay)
-                self.logger.info('Tick')
+                # Put the service's regular activities here
+                self.smax_logging_action()
+                time.sleep(self.logging_interval)
+
         except KeyboardInterrupt:
             # Monitor for SIGINT, which we've set as the terminate signal in the
             # .service file
             self.logger.warning('Keyboard interrupt (SIGINT) received...')
             self.stop()
+
+    def smax_logging_action(self):
+        """Run the code to write logging data to SMAX"""
+        # Gather data
+        logging_data = random.randrange(12.1, 14.2)
+
+        # write code to SMA-X
+        self.logger.info(f'Pretending to Write {logging_data} to SMAX ')
+        # Simulate a network delay
+        time.sleep(random.randrange(0.01, 0.2))
+
 
     def stop(self):
         """Clean up after the service's main loop"""
@@ -80,5 +100,5 @@ class ExampleService:
 
 if __name__ == '__main__':
     # Do start up stuff
-    service = ExampleService()
+    service = ExampleSmaxService()
     service.start()
