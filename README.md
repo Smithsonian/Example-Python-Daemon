@@ -1,4 +1,4 @@
-# Example-SMAX-Python-Daemon
+# Example-Python-Daemon
 
 A systemd service implemented in Python and demonstrating SMAX communication.
 
