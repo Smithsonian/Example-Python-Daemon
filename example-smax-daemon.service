@@ -1,0 +1,11 @@
+[Unit]
+Description=Example SMAX Python Daemon
+
+[Service]
+Type=notify
+Environment=PYTHONUNBUFFERED=1
+KillSignal=SIGINT
+ExecStart=/usr/bin/python3 /home/pgrimes/GitHub/Example-SMAX-Python-Daemon/example-smax-daemon.py
+
+[Install]
+WantedBy=default.target
