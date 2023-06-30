@@ -4,7 +4,10 @@ import sys
 import time
 import datetime
 
-#import systemd.daemon
+import systemd.daemon
+
+READY = 'READY=1'
+STOPPING = 'STOPPING=1'
 
 from smax import SmaxRedisClient
 
@@ -71,7 +74,7 @@ class ExampleSmaxService:
 
         # systemctl will wait until this notification is sent
         # Tell systemd that we are ready to run the service
-        #systemd.daemon.notify(systemd.daemon.Notification.READY)
+        systemd.daemon.notify(READY)
 
         # Run the service's main loop
         self.run()
@@ -123,7 +126,7 @@ class ExampleSmaxService:
     def stop(self):
         """Clean up after the service's main loop"""
         # Tell systemd that we received the stop signal
-        #systemd.daemon.notify(systemd.daemon.Notification.STOPPING)
+        systemd.daemon.notify(STOPPING)
 
         # Put the service's cleanup code here.
         self.logger.info('Cleaning up...')
