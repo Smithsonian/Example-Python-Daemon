@@ -1,5 +1,6 @@
 #!/bin/bash
-source $HOME/miniconda3/etc/profile.d/conda.sh
-conda activate smax # change to your conda environment's name
+MAMBA_ROOT='/opt/miniforge3/'
+source $MAMBA_ROOT/etc/profile.d/mamba.sh
+conda activate $MAMBA_ROOT/envs/example-smax-daemon # change to your conda environment's name
 # -u: unbuffered output
-python -u $HOME/.config/systemd/example-smax-daemon/example-smax-daemon.py
+python -u /usr/local/lib/example-smax-daemon/example-smax-daemon.py
