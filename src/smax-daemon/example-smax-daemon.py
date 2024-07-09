@@ -33,6 +33,7 @@ class ExampleHardwareInterface:
         self._hardware_config = None
         self._hardware_lock = threading.Lock()
         self._hardware_error = 'No connection attempted'
+        self._hardware_data = {}
         
         self.logger = logger
         
@@ -44,6 +45,9 @@ class ExampleHardwareInterface:
         
         if 'config' in config.keys():
             self._hardware_config = config['config']
+            
+        if 'logged_data' in config.keys():
+            self._hardware_data = config['logged_data']
             
         if self._hardware and self._hardware_config:
             with self._hardware_lock:
