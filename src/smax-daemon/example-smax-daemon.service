@@ -8,7 +8,6 @@ Type=notify
 NotifyAccess=all
 User=smauser
 Environment=PYTHONUNBUFFERED=1
-KillSignal=SIGINT
 WorkingDirectory=/usr/local/lib/example-smax-daemon
 ExecStartPre = /bin/nm-online -q
 ExecStart=/usr/local/lib/example-smax-daemon/on-start.sh

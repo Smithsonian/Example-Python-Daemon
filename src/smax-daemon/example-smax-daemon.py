@@ -4,8 +4,10 @@ import sys
 import time
 import datetime
 import threading
+import json
 
 import systemd.daemon
+import signal
 
 default_config = "/home/smauser/wsma_config/hardware/hardware_config.json"
 default_smax_config = "/home/smauser/wsma_config/smax_config.json"
@@ -13,13 +15,13 @@ default_smax_config = "/home/smauser/wsma_config/smax_config.json"
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
 
-from smax import SmaxRedisClient
+from smax import SmaxRedisClient, join
 
 from example_smax_hardware import ExampleHardware
 
 class ExampleHardwareInterface:
     """An example daemon for communicating with a piece of hardware."""
-    def __init__(self, config=None):
+    def __init__(self, config=None, logger=None):
         """Create a new daemon class that carries out monitoring and control of a simulated
         piece of hardware. 
         
@@ -30,17 +32,15 @@ class ExampleHardwareInterface:
         self._hardware = None
         self._hardware_config = None
         self._hardware_lock = threading.Lock()
+        self._hardware_error = 'No connection attempted'
         
-        # Logging interval in seconds
-        self.logging_interval = 5.0
+        self.logger = logger
         
         if config:
             self.configure(config)
             
     def configure(self, config):
         """Configure the daemon and hardware"""
-        if 'logging_interval' in config.keys():
-            self.logging_interval = config['logging_interval']
         
         if 'config' in config.keys():
             self._hardware_config = config['config']
@@ -53,9 +53,15 @@ class ExampleHardwareInterface:
         """Create and initialize hardware communication object."""
         try:
             with self._hardware_lock:
-                self._hardware = ExampleHardware.ExampleHardware(config=self._hardware_config)
-        except: # Hardware connection errors
+                self._hardware = ExampleHardware(config=self._hardware_config)
+                self._hardware_error = "None"
+        except Exception as e: # Hardware connection errors
             self._hardware = None
+            self._hardware_error = e.msg
+            
+    def disconnect_hardware(self):
+        self._hardware = None
+        self._harwarre_error = "disconnected"
         
     def logging_action(self):
         """Get logging data from hardware and share to SMA-X"""
@@ -81,33 +87,42 @@ class ExampleHardwareInterface:
             except Exception as e: # Except hardware connection errors
                 self._hardware = None
                 logged_data = {'comm_status':'connection error'}
-                logged_data['comm_error'] = e.msg
+                logged_data['comm_error'] = repr(e)
         else:
-            logged_data = {'comm_status':'connection error'}
+            logged_data = {'comm_status':'connection error',
+                           'comm_error':self._hardware_error}
         
         return logged_data
         
-    def set_random_base_callback(self, msg):
+    def set_random_base_callback(self, message):
         """Callback to be triggered on Pub/Sub for random base value"""
-        newbase = msg.data
+        if self.logger:
+            date = datetime.datetime.fromtimestamp(message.date)
+            self.logger.info(f'Received callback notification for {message.origin} from {message.source} with data {message.data} at {date}')
+        
+        newbase = message.data
         
         if self._hardware:
             try:
                 with self._hardware_lock:
                     self._hardware.base = newbase
-            except: # Except hardware errors
-                pass
+            except Exception as e: # Except hardware errors
+                self._hardware_error = repr(e)
             
-    def set_random_range_callback(self, msg):
+    def set_random_range_callback(self, message):
         """Callback to be triggered on Pub/Sub for random base value"""
-        newrange = msg.data
+        if self.logger:
+            date = datetime.datetime.fromtimestamp(message.date)
+            self.logger.info(f'Received callback notification for {message.origin} from {message.source} with data {message.data} at {date}')
+        
+        newrange = message.data
         
         if self._hardware:
             try:
                 with self._hardware_lock:
                     self._hardware.range = newrange
-            except: # Except hardware errors
-                pass
+            except Exception as e: # Except hardware errors
+                self._hardware_error = repr(e)
         
 
 class ExampleSmaxService:
@@ -118,9 +133,15 @@ class ExampleSmaxService:
     def __init__(self, config=default_config, smax_config=default_smax_config):
         """Service object initialization code"""
         self.logger = self._init_logger()
+        
+        # Configure SIGTERM behavior
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
 
         # Read the hardware and SMAX configuration
         self.read_config(config, smax_config)
+
+        # A list of control keys
+        self.control_keys = None
 
         # The SMAXRedisClient instance
         self.smax_client = None
@@ -130,6 +151,9 @@ class ExampleSmaxService:
 
         # Log that we managed to create the instance
         self.logger.info('Example-SMAX-Daemon instance created')
+        
+        # A time to delay between loops
+        self.delay = 1.0
 
     def _init_logger(self):
         logger = logging.getLogger(__name__)
@@ -165,13 +189,9 @@ class ExampleSmaxService:
         self.smax_table = self._config["smax_config"]["smax_table"]
         self.smax_key = self._config["smax_config"]["smax_key"]
         
-        control_keys = {}
-        for k in self._config["smax_config"].keys():
-            if k.endswith('control_key'):
-                control_keys[k] = self._config["smax_config"][k]
+        self.control_keys = self._config["smax_config"]["control_keys"]
                              
         self.logging_interval = self._config["logging_interval"]
-        self.serial_server = self._config["serial_server"]
 
     def start(self):
         """Code to be run before the service's main loop"""
@@ -189,19 +209,12 @@ class ExampleSmaxService:
             self.smax_client.smax_connect_to(self.smax_server, self.smax_port, self.smax_db)
         
         self.logger.info('SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
-        
-        # Set default values for pubsub channels
-        self.smax_client.smax_share("example_smax_daemon:logging_action", "random_base", self._random_base)
-        self.smax_client.smax_share("example_smax_daemon:logging_action", "random_range", self._random_range)
-        self.logger.info('Set initial values for pubsub values')
 
-        # Register pubsub channels
-        self.smax_client.smax_subscribe("example_smax_daemon:logging_action:random_base", self.smax_random_base_callback)
-        self.smax_client.smax_subscribe("example_smax_daemon:logging_action:random_range", self.smax_random_range_callback)
+        # Register pubsub channels specified in config["smax_config"]["control_keys"] to the 
+        # callbacks specified in the config.
+        for k in self.control_keys:
+            self.smax_client.smax_subscribe(join(self.smax_table, self.smax_key, k), getattr(self._hardware, self.control_keys[k]))
         self.logger.info('Subscribed to pubsub notifications')
-
-        # Set up the time for the next logging action
-        self._next_log_time = time.monotonic() + self.logging_interval
 
         # systemctl will wait until this notification is sent
         # Tell systemd that we are ready to run the service
@@ -212,52 +225,68 @@ class ExampleSmaxService:
 
     def run(self):
         """Run the main service loop"""
+        
+        # Launch the logging thread as a daemon so that it can be shut down quickly
+        self.logging_thread = threading.Thread(target=self.logging_loop, args=(self.logging_interval), daemon=True, name='Logging')
+        self.logging_thread.start()
+        
         try:
             while True:
-                # Put the service's regular activities here
-                self.smax_logging_action()
-                time.sleep(self.logging_interval)
+                time.sleep(self.delay)
 
         except KeyboardInterrupt:
             # Monitor for SIGINT, which we've set as the terminate signal in the
             # .service file
             self.logger.warning('SIGINT (keyboard interrupt) received...')
             self.stop()
+            
+    def logging_loop(self, interval):
+        """The loop that will run in the thread to carry out logging"""
+        while True:
+            next_log_time = time.monotonic() + self.logging_interval
+            try:
+                self.smax_logging_action()
+            except Exception as e:
+                pass
 
+            # Try to run on a regular schedule, but if smax_logging_action takes too long,
+            # just wait logging_interval between finishing one smax_logging_action and starting next.
+            curr_time = time.monotonic()
+            if next_log_time > curr_time:
+                time.sleep(next_log_time - curr_time)
+            else:
+                time.sleep(self.logging_interval)
+        
     def smax_logging_action(self):
         """Run the code to write logging data to SMAX"""
         # Gather data
-        logging_data = random.uniform(self._random_base, self._random_base+self._random_range)
+        logged_data = self.hardware.logging_action()
 
-        # write value to SMA-X
-        self.smax_client.smax_share("example_smax_daemon:logging_action", "random_data", logging_data)
-        self.logger.info(f'Wrote {logging_data} to SMAX ')
-        # Simulate a network delay
-        time.sleep(random.uniform(0.01, 0.2))
+        # write values to SMA-X
+        for key in logged_data.keys():
+            self.logger.info(f"key in logged_data.keys(): {key}")
+            if ":" in key:
+                ls = [self.smax_key]
+                ls.extend(key.split(":")[0:-1])
+                atab = ":".join(ls)
+                skey = key.split(":")[-1]
+            else:
+                atab = self.smax_key
+                skey = key
+            self.smax_client.smax_share(f"{self.smax_table}:{atab}", skey, logged_data[key])
+        self.logger.info(f'Wrote hardware data to SMAX ')
         
-        # read back value from SMA-X
-        read_back = self.smax_client.smax_pull("example_smax_daemon:logging_action", "random_data")
-        date = datetime.datetime.utcfromtimestamp(read_back.date)
-        self.logger.info(f'Read back {read_back.data}, written at {date} from SMA-X')
-        
-    def smax_random_base_callback(self, message):
-        """Run on a pubsub notifcation"""
-        date = datetime.datetime.utcfromtimestamp(message.date)
-        self.logger.info(f'Received PubSub notification for {message.origin} from {message.source} with data {message.data} at {date}')
-        
-        self._random_base = message.data
-        
-    def smax_random_range_callback(self, message):
-        """Run on a pubsub notification"""
-        date = datetime.datetime.utcfromtimestamp(message.date)
-        self.logger.info(f'Received PubSub notification for {message.origin} from {message.source} with data {message.data} at {date}')
-        
-        self._random_range = message.data
+    def _handle_sigterm(self, sig, frame):
+        self.logger.warning('SIGTERM received...')
+        self.stop()
 
     def stop(self):
         """Clean up after the service's main loop"""
         # Tell systemd that we received the stop signal
         systemd.daemon.notify(STOPPING)
+
+        # Clean up the hardware
+        self.hardware.disconnect_hardware()
 
         # Put the service's cleanup code here.
         self.logger.info('Cleaning up...')

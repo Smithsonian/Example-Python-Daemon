@@ -31,8 +31,8 @@ class ExampleHardware:
         keyed by the private attributes to set."""
         
         for k in config.keys():
-            # no type checking or anything complex
-            setattr(self, "_"+k, config[k])
+            # no type checking or anything complex here
+            setattr(self, k, config[k])
         
         time.sleep(self._config_delay)
         
