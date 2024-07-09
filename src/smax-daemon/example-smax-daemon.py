@@ -59,9 +59,12 @@ class ExampleHardwareInterface:
             with self._hardware_lock:
                 self._hardware = ExampleHardware(config=self._hardware_config)
                 self._hardware_error = "None"
+                if self._hardware_config:
+                    self._hardware.configure(self._hardware_config)
+                
         except Exception as e: # Hardware connection errors
             self._hardware = None
-            self._hardware_error = e.msg
+            self._hardware_error = repr(e)
             
     def disconnect_hardware(self):
         self._hardware = None
