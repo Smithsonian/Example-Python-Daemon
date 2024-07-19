@@ -34,31 +34,35 @@ class ExampleHardware:
             # no type checking or anything complex here
             setattr(self, k, config[k])
         
-        time.sleep(self._config_delay)
-        
-    def random_value(self):
+        if self._config_delay:
+            time.sleep(self._config_delay)
+    
+    def random_number(self):
         """Return a random number"""
-        time.sleep(self._delay)
+        if self._delay:
+            time.sleep(self._delay)
         return random.uniform(self._random_base, self._random_base+self._random_range)
     
     @property
-    def base(self):
+    def random_base(self):
         """Getter for random base"""
         return self._random_base
     
-    @base.setter
-    def base(self, base):
+    @random_base.setter
+    def random_base(self, base):
         """Set the base for the random number"""
-        time.sleep(self._config_delay)
+        if self._config_delay:
+            time.sleep(self._config_delay)
         self._random_base = base
     
     @property
-    def range(self):
+    def random_range(self):
         """Getter for random range"""
         return self._random_range
     
-    @range.setter
-    def range(self, range):
+    @random_range.setter
+    def random_range(self, range):
         """Set the range of the random number"""
-        time.sleep(self._config_delay)
+        if self._config_delay:
+            time.sleep(self._config_delay)
         self._random_range = range

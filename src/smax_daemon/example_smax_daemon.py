@@ -1,5 +1,6 @@
+#!/usr/bin/env python
 import logging
-import os
+import types
 import sys
 import time
 import datetime
@@ -9,7 +10,7 @@ import json
 import systemd.daemon
 import signal
 
-default_config = "/home/smauser/wsma_config/hardware/hardware_config.json"
+default_config = "/home/smauser/wsma_config/example-smax-daemon/daemon_config.json"
 default_smax_config = "/home/smauser/wsma_config/smax_config.json"
 
 READY = 'READY=1'
@@ -87,6 +88,15 @@ class ExampleHardwareInterface:
                     # do logging gets
                     for data in self._hardware_data.keys():
                         reading = self._hardware.__getattribute__(data)
+                        # We do this next checl so that we can get values from methods as 
+                        # well as attribute values.
+                        # This also suggests that arguments could be
+                        # defined in the configuration json for self._hardware_data
+                        # and passed to the method call. Keyword arguments
+                        # would be simplest.
+                        self.logger.debug(f"Attribute {data}: {type(reading)}")
+                        if type(reading) is types.MethodType:
+                            reading = self._hardware.__getattribute__(data)()
                         logged_data[data] = reading
                         self.logger.info(f'Got data for hardware {data}: {reading}')
                 logged_data['comm_status'] = "good"
@@ -96,8 +106,8 @@ class ExampleHardwareInterface:
                 logged_data = {'comm_status':'connection error'}
                 logged_data['comm_error'] = repr(e)
         else:
-            logged_data = {'comm_status':'connection error',
-                           'comm_error':self._hardware_error}
+            logged_data = {'comm_status':"connection error",
+                           'comm_error':"Not Connected"}
         
         return logged_data
         
@@ -144,11 +154,12 @@ class ExampleSmaxService:
         # Configure SIGTERM behavior
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
-        # Read the hardware and SMAX configuration
-        self.read_config(config, smax_config)
-
         # A list of control keys
         self.control_keys = None
+
+        # Read the hardware and SMAX configuration
+        self.read_config(config, smax_config)
+        self.logger.info('Read Config File')
 
         # The SMAXRedisClient instance
         self.smax_client = None
@@ -169,6 +180,9 @@ class ExampleSmaxService:
         stdout_handler.setLevel(logging.DEBUG)
         stdout_handler.setFormatter(logging.Formatter('%(levelname)8s | %(message)s'))
         logger.addHandler(stdout_handler)
+        file_handler = logging.FileHandler('example-smax-daemon.log')
+        file_handler.setLevel(logging.DEBUG)
+        logger.addHandler(file_handler)
         return logger
     
     def read_config(self, config, smax_config=None):
@@ -178,11 +192,13 @@ class ExampleSmaxService:
             self._config = json.load(fp)
             fp.close()
         
-        # If smax_config is given, update the compressor specific config file with the smax_config
+        # If smax_config is given, update the hardware specific config file with the smax_config
         if smax_config:    
             with open(smax_config) as fp:
                 s_config = json.load(fp)
                 fp.close()
+            self.logger.debug("Got smax_config")
+            self.logger.debug(s_config)
             if "smax_table" in self._config["smax_config"]:
                 smax_root = s_config["smax_table"]
                 self._config["smax_config"]["smax_table"] = ":".join([smax_root, self._config["smax_config"]["smax_table"]])
@@ -196,16 +212,29 @@ class ExampleSmaxService:
         self.smax_table = self._config["smax_config"]["smax_table"]
         self.smax_key = self._config["smax_config"]["smax_key"]
         
-        self.control_keys = self._config["smax_config"]["control_keys"]
-                             
+        self.logger.debug("SMAX Configuration:")
+        self.logger.debug(f"\tSMAX Server: {self.smax_server}")
+        self.logger.debug(f"\tSMAX Port  : {self.smax_port}")
+        self.logger.debug(f"\tSMAx DB    : {self.smax_db}")
+        self.logger.debug(f"\tSMAX Table : {self.smax_table}")
+        self.logger.debug(f"\tSMAX Key   : {self.smax_key}")
+        
+        
+        self.control_keys = self._config["smax_config"]["smax_control_keys"]
+        self.logger.debug("Got control keys:")
+        for k in self.control_keys.keys():
+            self.logger.debug(f"\t {k} : {self.control_keys[k]}")
+        
         self.logging_interval = self._config["logging_interval"]
+        self.logger.debug(f"Logging Interval {self.logging_interval}")
 
     def start(self):
         """Code to be run before the service's main loop"""
         # Start up code
 
         # Create the hardware interface
-        self.hardware = ExampleHardwareInterface(config=self._config)
+        self.hardware = ExampleHardwareInterface(config=self._config, logger=self.logger)
+        self.logger.info('Created hardware object')
         
         # Create the SMA-X interface
         # This snippet creates a connection to SMA-X that we have to close properly when the
@@ -219,8 +248,8 @@ class ExampleSmaxService:
 
         # Register pubsub channels specified in config["smax_config"]["control_keys"] to the 
         # callbacks specified in the config.
-        for k in self.control_keys:
-            self.smax_client.smax_subscribe(join(self.smax_table, self.smax_key, k), getattr(self._hardware, self.control_keys[k]))
+        for k in self.control_keys.keys():
+            self.smax_client.smax_subscribe(join(self.smax_table, self.smax_key, k), getattr(self.hardware, self.control_keys[k]))
         self.logger.info('Subscribed to pubsub notifications')
 
         # systemctl will wait until this notification is sent
@@ -234,8 +263,10 @@ class ExampleSmaxService:
         """Run the main service loop"""
         
         # Launch the logging thread as a daemon so that it can be shut down quickly
-        self.logging_thread = threading.Thread(target=self.logging_loop, args=(self.logging_interval), daemon=True, name='Logging')
+        self.logging_thread = threading.Thread(target=self.logging_loop, daemon=True, name='Logging')
         self.logging_thread.start()
+        
+        self.logger.info("Started logging thread")
         
         try:
             while True:
@@ -247,9 +278,10 @@ class ExampleSmaxService:
             self.logger.warning('SIGINT (keyboard interrupt) received...')
             self.stop()
             
-    def logging_loop(self, interval):
+    def logging_loop(self):
         """The loop that will run in the thread to carry out logging"""
         while True:
+            self.logger.debug("tick")
             next_log_time = time.monotonic() + self.logging_interval
             try:
                 self.smax_logging_action()
@@ -267,8 +299,11 @@ class ExampleSmaxService:
     def smax_logging_action(self):
         """Run the code to write logging data to SMAX"""
         # Gather data
+        self.logger.debug("In logging action")
         logged_data = self.hardware.logging_action()
 
+        self.logger.debug("Received data")
+        
         # write values to SMA-X
         for key in logged_data.keys():
             self.logger.info(f"key in logged_data.keys(): {key}")

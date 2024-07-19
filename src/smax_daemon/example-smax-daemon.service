@@ -9,7 +9,7 @@ NotifyAccess=all
 User=smauser
 Environment=PYTHONUNBUFFERED=1
 WorkingDirectory=/usr/local/lib/example-smax-daemon
-ExecStartPre = /bin/nm-online -q
+# ExecStartPre = /bin/nm-online -q
 ExecStart=/usr/local/lib/example-smax-daemon/on-start.sh
 
 [Install]
