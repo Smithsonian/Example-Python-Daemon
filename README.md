@@ -9,5 +9,10 @@ Service is set up to use `SIGINT` to safely stop the process.  This is caught wi
 Installation as both a user and system service is described in the second tutorial.
 
 Requires:
+Development Tools group of RPM packages (on RHEL derived distros)
+equivalent on Debian derived distros
+    (this is in order to have the components needed to install systemd-python)
+Systemd to be running
+Package systemd-devel
 systemd-python (in turn requires linux pacakage systemd-devel)
 psutils

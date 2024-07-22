@@ -7,7 +7,7 @@ build-backend = 'setuptools.build_meta'
 where = ['src']  # ['.'] by default
 include = ['*']  # ['*'] by default
 exclude = ['tests*', 
-           'smax-daemon']
+           'smax_daemon']
 
 [project]
 name = 'example_smax_daemon'

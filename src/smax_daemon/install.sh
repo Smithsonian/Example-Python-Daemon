@@ -9,34 +9,34 @@
 #
 
 USR_LOCAL_LIB="/usr/local/lib"
-INSTALL="$USR_LOCAL_LIB/example-smax-daemon"
+INSTALL="$USR_LOCAL_LIB/example_smax_daemon"
 CONFIG="/home/smauser/wsma_config"
 
 mkdir -p $INSTALL
-mkdir -p "$CONFIG/example-smax-daemon"
+mkdir -p "$CONFIG/example_smax_daemon"
 
 cp "./example_smax_daemon.py" $INSTALL
-cp "./example-smax-daemon.service" $INSTALL
-cp "./on-start.sh" $INSTALL
+cp "./example_smax_daemon.service" $INSTALL
+cp "./on_start.sh" $INSTALL
 
 chmod -R 755 $INSTALL
 chown -R smauser:smauser $INSTALL
 
-ln -s "$INSTALL/example-smax-daemon.service" "/etc/systemd/system/example-smax-daemon.service"
+ln -s "$INSTALL/example_smax_daemon.service" "/etc/systemd/system/example_smax_daemon.service"
 
 if ! test -f "$CONFIG/smax_config.json"
 then
     cp "./smax_config.json" "$CONFIG"
 fi
-cp "./daemon_config.json" "$CONFIG/example-smax-daemon"
+cp "./daemon_config.json" "$CONFIG/example_smax_daemon"
 
-read -p "Enable example-smax-daemon at this time? " -n 1 -r
+read -p "Enable example_smax_daemon at this time? " -n 1 -r
 echo    # (optional) move to a new line
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
     systemctl daemon-reload
-    systemctl enable example-smax-daemon
-    systemctl restart example-smax-daemon
+    systemctl enable example_smax_daemon
+    systemctl restart example_smax_daemon
 fi
 
 exit
