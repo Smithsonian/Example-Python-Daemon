@@ -1,6 +1,7 @@
 [Unit]
 Description=Example SMAX Daemon
 After=network-online.target
+After=multi-user.target
 Requires=network-online.target
 
 [Service]

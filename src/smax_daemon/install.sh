@@ -16,6 +16,7 @@ mkdir -p $INSTALL
 mkdir -p "$CONFIG/example_smax_daemon"
 
 cp "./example_smax_daemon.py" $INSTALL
+cp "./example_hardware_interface.py" $INSTALL
 cp "./example_smax_daemon.service" $INSTALL
 cp "./on_start.sh" $INSTALL
 
