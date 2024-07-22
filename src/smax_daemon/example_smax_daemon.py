@@ -1,21 +1,23 @@
 #!/usr/bin/env python
 import logging
 import sys
+import os
 import time
 
 import threading
 import json
 
+from retrying import retry
 import systemd.daemon
 import signal
 
-# Based on system setup
-default_smax_config = "~smauser/wsma_config/smax_config.json"
+# Change these based on system setup
+default_smax_config = os.path.expanduser("~smauser/wsma_config/smax_config.json")
+default_config = os.path.expanduser("~smauser/wsma_config/example_smax_daemon/daemon_config.json")
 
-# Change these three lines per application
+# Change these lines per application
 daemon_name = "example_smax_daemon"
 from example_hardware_interface import ExampleHardwareInterface as HardwareInterface
-default_config = "~smauser/wsma_config/example_smax_daemon/daemon_config.json"
 
 # Change between testing and production
 logging_level = logging.DEBUG
@@ -24,7 +26,7 @@ logging_level = logging.DEBUG
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
 
-from smax import SmaxRedisClient, join
+from smax import SmaxRedisClient, SmaxConnectionError, join
 
 
 class ExampleSmaxService:
@@ -118,20 +120,9 @@ class ExampleSmaxService:
         self.logger.info('Created hardware interface object')
         
         # Create the SMA-X interface
-        # This snippet creates a connection to SMA-X that we have to close properly when the
-        # service terminates
-        if self.smax_client is None:
-            self.smax_client = SmaxRedisClient(redis_ip=self.smax_server, redis_port=self.smax_port, redis_db=self.smax_db, program_name="example_smax_daemon")
-        else:
-            self.smax_client.smax_connect_to(self.smax_server, self.smax_port, self.smax_db)
-        
-        self.logger.info('SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
-
-        # Register pubsub channels specified in config["smax_config"]["control_keys"] to the 
-        # callbacks specified in the config.
-        for k in self.control_keys.keys():
-            self.smax_client.smax_subscribe(join(self.smax_table, self.smax_key, k), getattr(self.hardware, self.control_keys[k]))
-        self.logger.info('Subscribed to pubsub notifications')
+        #
+        # There's no point to us starting without a SMA-X connection, so this will use 
+        self.connect_to_smax()
 
         # systemctl will wait until this notification is sent
         # Tell systemd that we are ready to run the service
@@ -139,6 +130,27 @@ class ExampleSmaxService:
 
         # Run the service's main loop
         self.run()
+    
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=30000, retry_on_exception=SmaxConnectionError)
+    def connect_to_smax(self):
+        """creates a connection to SMA-X that we have to close properly when the
+        service terminates."""
+        try:
+            if self.smax_client is None:
+                self.smax_client = SmaxRedisClient(redis_ip=self.smax_server, redis_port=self.smax_port, redis_db=self.smax_db, program_name="example_smax_daemon")
+            else:
+                self.smax_client.smax_connect_to(self.smax_server, self.smax_port, self.smax_db)
+
+            self.logger.info(f'SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
+        except SmaxConnectionError as e:
+            self.logger.warning(f'Could not connect to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')    
+            raise e
+        
+        # Register pubsub channels specified in config["smax_config"]["control_keys"] to the 
+        # callbacks specified in the config.
+        for k in self.control_keys.keys():
+            self.smax_client.smax_subscribe(join(self.smax_table, self.smax_key, k), getattr(self.hardware, self.control_keys[k]))
+        self.logger.info('Subscribed to pubsub notifications')
 
     def run(self):
         """Run the main service loop"""
@@ -179,15 +191,26 @@ class ExampleSmaxService:
         
     def smax_logging_action(self):
         """Run the code to write logging data to SMAX"""
+        # If we've lost the connection, lets reconnect
+        # This will hang until a connection happens - this doesn't
+        # cost us anything, as we need an SMA-X connection to
+        # to do anything with the hardware.
+        if self.smax_client is None:
+            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
+            self.connect_to_smax()
+            
+        if not self.smax_client.ping():
+            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
+            self.connect_to_smax()
+            
         # Gather data
         self.logger.debug("In logging action")
         logged_data = self.hardware.logging_action()
 
-        self.logger.debug("Received data")
-        
+        self.logger.debug("Received data")    
         # write values to SMA-X
         for key in logged_data.keys():
-            self.logger.info(f"key in logged_data.keys(): {key}")
+            self.logger.debug(f"key in logged_data.keys(): {key}")
             if ":" in key:
                 ls = [self.smax_key]
                 ls.extend(key.split(":")[0:-1])
