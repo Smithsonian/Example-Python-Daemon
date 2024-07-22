@@ -198,30 +198,32 @@ class ExampleSmaxService:
         if self.smax_client is None:
             self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
             self.connect_to_smax()
-            
-        if not self.smax_client.ping():
-            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
-            self.connect_to_smax()
-            
+                
         # Gather data
         self.logger.debug("In logging action")
         logged_data = self.hardware.logging_action()
 
         self.logger.debug("Received data")    
         # write values to SMA-X
-        for key in logged_data.keys():
-            self.logger.debug(f"key in logged_data.keys(): {key}")
-            if ":" in key:
-                ls = [self.smax_key]
-                ls.extend(key.split(":")[0:-1])
-                atab = ":".join(ls)
-                skey = key.split(":")[-1]
-            else:
-                atab = self.smax_key
-                skey = key
-            self.smax_client.smax_share(f"{self.smax_table}:{atab}", skey, logged_data[key])
-        self.logger.info(f'Wrote hardware data to SMAX ')
-        
+        # Retry if connection is missing
+        try:
+            for key in logged_data.keys():
+                self.logger.debug(f"key in logged_data.keys(): {key}")
+                if ":" in key:
+                    ls = [self.smax_key]
+                    ls.extend(key.split(":")[0:-1])
+                    atab = ":".join(ls)
+                    skey = key.split(":")[-1]
+                else:
+                    atab = self.smax_key
+                    skey = key
+                self.smax_client.smax_share(f"{self.smax_table}:{atab}", skey, logged_data[key])
+            self.logger.info(f'Wrote hardware data to SMAX ')
+        except SmaxConnectionError:
+            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
+            self.connect_to_smax()
+            self.smax_logging_action()
+            
     def _handle_sigterm(self, sig, frame):
         self.logger.warning('SIGTERM received...')
         self.stop()
