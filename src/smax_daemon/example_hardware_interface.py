@@ -5,7 +5,7 @@ import threading
 from example_smax_hardware import ExampleHardware
 
 class ExampleHardwareInterface:
-    """An example daemon for communicating with a piece of hardware."""
+    """An example daemon interface for communicating with a piece of hardware."""
     def __init__(self, config=None, logger=None):
         """Create a new daemon class that carries out monitoring and control of a simulated
         piece of hardware. 

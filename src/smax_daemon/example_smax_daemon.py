@@ -9,12 +9,17 @@ import json
 import systemd.daemon
 import signal
 
-default_smax_config = "/home/smauser/wsma_config/smax_config.json"
+# Based on system setup
+default_smax_config = "~smauser/wsma_config/smax_config.json"
 
 # Change these three lines per application
-daemon_name = "Example-SMA-daemon"
+daemon_name = "example_smax_daemon"
 from example_hardware_interface import ExampleHardwareInterface as HardwareInterface
-default_config = "/home/smauser/wsma_config/example-smax-daemon/daemon_config.json"
+default_config = "~smauser/wsma_config/example_smax_daemon/daemon_config.json"
+
+# Change between testing and production
+logging_level = logging.DEBUG
+#logging_level = logging.WARNING
 
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
@@ -23,10 +28,6 @@ from smax import SmaxRedisClient, join
 
 
 class ExampleSmaxService:
-    # Specify the path for a resource that we open and must close correctly
-    # when the service is stopped
-    FIFO = '/tmp/myservice_pipe'
-
     def __init__(self, config=default_config, smax_config=default_smax_config):
         """Service object initialization code"""
         self.logger = self._init_logger()
@@ -55,13 +56,13 @@ class ExampleSmaxService:
 
     def _init_logger(self):
         logger = logging.getLogger(__name__)
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging_level)
         stdout_handler = logging.StreamHandler()
-        stdout_handler.setLevel(logging.DEBUG)
+        stdout_handler.setLevel(logging_level)
         stdout_handler.setFormatter(logging.Formatter('%(levelname)8s | %(message)s'))
         logger.addHandler(stdout_handler)
         file_handler = logging.FileHandler(f'{daemon_name.lower()}.log')
-        file_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(logging_level)
         logger.addHandler(file_handler)
         return logger
     
@@ -208,6 +209,7 @@ class ExampleSmaxService:
         systemd.daemon.notify(STOPPING)
 
         # Clean up the hardware
+        self.logger.info('Disconnecting hardware...')
         self.hardware.disconnect_hardware()
 
         # Put the service's cleanup code here.
