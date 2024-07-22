@@ -28,6 +28,9 @@ STOPPING = 'STOPPING=1'
 
 from smax import SmaxRedisClient, SmaxConnectionError, join
 
+def _is_smaxconnectionerror(exception):
+    return isinstance(exception, SmaxConnectionError)
+
 
 class ExampleSmaxService:
     def __init__(self, config=default_config, smax_config=default_smax_config):
@@ -131,7 +134,7 @@ class ExampleSmaxService:
         # Run the service's main loop
         self.run()
     
-    @retry(wait_exponential_multiplier=1000, wait_exponential_max=30000, retry_on_exception=SmaxConnectionError)
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=30000, retry_on_exception=_is_smaxconnectionerror)
     def connect_to_smax(self):
         """creates a connection to SMA-X that we have to close properly when the
         service terminates."""
