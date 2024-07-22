@@ -9,15 +9,18 @@ import json
 import systemd.daemon
 import signal
 
-default_config = "/home/smauser/wsma_config/example-smax-daemon/daemon_config.json"
 default_smax_config = "/home/smauser/wsma_config/smax_config.json"
+
+# Change these three lines per application
+daemon_name = "Example-SMA-daemon"
+from example_hardware_interface import ExampleHardwareInterface as HardwareInterface
+default_config = "/home/smauser/wsma_config/example-smax-daemon/daemon_config.json"
 
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
 
 from smax import SmaxRedisClient, join
 
-from example_hardware_interface import ExampleHardwareInterface
 
 class ExampleSmaxService:
     # Specify the path for a resource that we open and must close correctly
@@ -45,7 +48,7 @@ class ExampleSmaxService:
         self.hardware = None
 
         # Log that we managed to create the instance
-        self.logger.info('Example-SMAX-Daemon instance created')
+        self.logger.info(f'{daemon_name} instance created')
         
         # A time to delay between loops
         self.delay = 1.0
@@ -57,7 +60,7 @@ class ExampleSmaxService:
         stdout_handler.setLevel(logging.DEBUG)
         stdout_handler.setFormatter(logging.Formatter('%(levelname)8s | %(message)s'))
         logger.addHandler(stdout_handler)
-        file_handler = logging.FileHandler('example-smax-daemon.log')
+        file_handler = logging.FileHandler(f'{daemon_name.lower()}.log')
         file_handler.setLevel(logging.DEBUG)
         logger.addHandler(file_handler)
         return logger
@@ -110,8 +113,8 @@ class ExampleSmaxService:
         # Start up code
 
         # Create the hardware interface
-        self.hardware = ExampleHardwareInterface(config=self._config, logger=self.logger)
-        self.logger.info('Created hardware object')
+        self.hardware = HardwareInterface(config=self._config, logger=self.logger)
+        self.logger.info('Created hardware interface object')
         
         # Create the SMA-X interface
         # This snippet creates a connection to SMA-X that we have to close properly when the
