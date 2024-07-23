@@ -98,21 +98,21 @@ class ExampleSmaxService:
         self.smax_table = self._config["smax_config"]["smax_table"]
         self.smax_key = self._config["smax_config"]["smax_key"]
         
-        self.logger.debug("SMAX Configuration:")
-        self.logger.debug(f"\tSMAX Server: {self.smax_server}")
-        self.logger.debug(f"\tSMAX Port  : {self.smax_port}")
-        self.logger.debug(f"\tSMAx DB    : {self.smax_db}")
-        self.logger.debug(f"\tSMAX Table : {self.smax_table}")
-        self.logger.debug(f"\tSMAX Key   : {self.smax_key}")
+        self.logger.info("SMAX Configuration:")
+        self.logger.info(f"\tSMAX Server: {self.smax_server}")
+        self.logger.info(f"\tSMAX Port  : {self.smax_port}")
+        self.logger.info(f"\tSMAx DB    : {self.smax_db}")
+        self.logger.info(f"\tSMAX Table : {self.smax_table}")
+        self.logger.info(f"\tSMAX Key   : {self.smax_key}")
         
         
         self.control_keys = self._config["smax_config"]["smax_control_keys"]
-        self.logger.debug("Got control keys:")
+        self.logger.info("Control keys:")
         for k in self.control_keys.keys():
-            self.logger.debug(f"\t {k} : {self.control_keys[k]}")
+            self.logger.info(f"\t {k} : {self.control_keys[k]}")
         
         self.logging_interval = self._config["logging_interval"]
-        self.logger.debug(f"Logging Interval {self.logging_interval}")
+        self.logger.info(f"Logging Interval {self.logging_interval}")
 
     def start(self):
         """Code to be run before the service's main loop"""
@@ -120,7 +120,7 @@ class ExampleSmaxService:
 
         # Create the hardware interface
         self.hardware = HardwareInterface(config=self._config, logger=self.logger)
-        self.logger.info('Created hardware interface object')
+        self.logger.warning('Created hardware interface object')
         
         # Create the SMA-X interface
         #
@@ -145,7 +145,7 @@ class ExampleSmaxService:
             else:
                 self.smax_client.smax_connect_to(self.smax_server, self.smax_port, self.smax_db)
 
-            self.logger.info(f'SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
+            self.logger.warning(f'SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
         except SmaxConnectionError as e:
             self.logger.warning(f'Could not connect to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')    
             raise e
@@ -164,7 +164,7 @@ class ExampleSmaxService:
         self.logging_thread = threading.Thread(target=self.logging_loop, daemon=True, name='Logging')
         self.logging_thread.start()
         
-        self.logger.info("Started logging thread")
+        self.logger.warning("Started logging thread")
         
         try:
             while True:
@@ -209,7 +209,7 @@ class ExampleSmaxService:
                 
         logged_data = self.hardware.logging_action()
 
-        self.logger.debug("Received data")    
+        self.logger.warning("Received data")    
         # write values to SMA-X
         # Retry if connection is missing
         try:

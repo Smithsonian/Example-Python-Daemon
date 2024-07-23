@@ -99,9 +99,11 @@ class ExampleHardwareInterface:
         """Callback to be triggered on Pub/Sub for random base value"""
         if self.logger:
             date = message.timestamp
-            self.logger.info(f'Received callback notification for {message.origin} from {message.origin} with data {message.data} at {date}')
+            self.logger.info(f'Received callback notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')
         
         newbase = message.data
+        
+        self.logger.warning(f'{message.origin} set random_base to {newbase}')
         
         if self._hardware:
             try:
@@ -114,9 +116,11 @@ class ExampleHardwareInterface:
         """Callback to be triggered on Pub/Sub for random base value"""
         if self.logger:
             date = message.timestamp
-            self.logger.info(f'Received callback notification for {message.origin} from {message.origin} with data {message.data} at {date}')
+            self.logger.info(f'Received callback notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')
         
         newrange = message.data
+        
+        self.logger.warning(f'{message.origin} set random_base to {newbase}')
         
         if self._hardware:
             try:
