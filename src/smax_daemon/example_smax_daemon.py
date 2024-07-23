@@ -284,7 +284,7 @@ class ExampleSmaxService:
             self.smax_logging_action()
             
     def _handle_sigterm(self, sig, frame):
-        self.logger.status('SIGTERM received...')
+        self.logger.info('SIGTERM received...')
         self.stop()
 
     def stop(self):
