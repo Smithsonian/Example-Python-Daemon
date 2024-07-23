@@ -23,6 +23,60 @@ from example_hardware_interface import ExampleHardwareInterface as HardwareInter
 #logging_level = logging.DEBUG
 logging_level = logging.WARNING
 
+logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
+
+# add a logging level for status output
+def add_logging_level(level_name, level_num, method_name=None):
+    """
+    Comprehensively adds a new logging level to the `logging` module and the
+    currently configured logging class.
+
+    `level_name` becomes an attribute of the `logging` module with the value
+    `level_num`. `method_name` becomes a convenience method for both `logging`
+    itself and the class returned by `logging.getLoggerClass()` (usually just
+    `logging.Logger`). If `method_name` is not specified, `level_name.lower()` is
+    used.
+
+    To avoid accidental clobberings of existing attributes, this method will
+    raise an `AttributeError` if the level name is already an attribute of the
+    `logging` module or if the method name is already present 
+
+    Example
+    -------
+    >>> addLoggingLevel('TRACE', logging.DEBUG - 5)
+    >>> logging.getLogger(__name__).setLevel("TRACE")
+    >>> logging.getLogger(__name__).trace('that worked')
+    >>> logging.trace('so did this')
+    >>> logging.TRACE
+    5
+
+    """
+    if not method_name:
+        method_name = level_name.lower()
+
+    if hasattr(logging, level_name):
+       raise AttributeError('{} already defined in logging module'.format(level_name))
+    if hasattr(logging, method_name):
+       raise AttributeError('{} already defined in logging module'.format(method_name))
+    if hasattr(logging.getLoggerClass(), method_name):
+       raise AttributeError('{} already defined in logger class'.format(method_name))
+
+    # This method was inspired by the answers to Stack Overflow post
+    # http://stackoverflow.com/q/2183233/2988730, especially
+    # http://stackoverflow.com/a/13638084/2988730
+    def logForLevel(self, message, *args, **kwargs):
+        if self.isEnabledFor(level_num):
+            self._log(level_num, message, args, **kwargs)
+    def logToRoot(message, *args, **kwargs):
+        logging.log(level_num, message, *args, **kwargs)
+
+    logging.addLevelName(level_num, level_name)
+    setattr(logging, level_name, level_num)
+    setattr(logging.getLoggerClass(), method_name, logForLevel)
+    setattr(logging, method_name, logToRoot)
+    
+add_logging_level('STATUS', logging.WARNING+5)
+
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
 
@@ -62,12 +116,11 @@ class ExampleSmaxService:
     def _init_logger(self):
         logger = logging.getLogger(__name__)
         logger.setLevel(logging_level)
-        stdout_handler = logging.StreamHandler()
-        stdout_handler.setLevel(logging_level)
-        stdout_handler.setFormatter(logging.Formatter('%(levelname)8s | %(message)s'))
-        logger.addHandler(stdout_handler)
         file_handler = logging.FileHandler(f'{daemon_name.lower()}.log')
         file_handler.setLevel(logging_level)
+        fileFormatter = logging.Formatter('%(asctime)s: %(levelname)s - %(message)s')
+        fileFormatter.default_msec_format = '%s.%03d'
+        file_handler.setFormatter(fileFormatter)
         logger.addHandler(file_handler)
         return logger
     
@@ -120,7 +173,7 @@ class ExampleSmaxService:
 
         # Create the hardware interface
         self.hardware = HardwareInterface(config=self._config, logger=self.logger)
-        self.logger.warning('Created hardware interface object')
+        self.logger.status('Created hardware interface object')
         
         # Create the SMA-X interface
         #
@@ -145,7 +198,7 @@ class ExampleSmaxService:
             else:
                 self.smax_client.smax_connect_to(self.smax_server, self.smax_port, self.smax_db)
 
-            self.logger.warning(f'SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
+            self.logger.status(f'SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
         except SmaxConnectionError as e:
             self.logger.warning(f'Could not connect to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')    
             raise e
@@ -164,7 +217,7 @@ class ExampleSmaxService:
         self.logging_thread = threading.Thread(target=self.logging_loop, daemon=True, name='Logging')
         self.logging_thread.start()
         
-        self.logger.warning("Started logging thread")
+        self.logger.status("Started logging thread")
         
         try:
             while True:
@@ -173,7 +226,7 @@ class ExampleSmaxService:
         except KeyboardInterrupt:
             # Monitor for SIGINT, which we've set as the terminate signal in the
             # .service file
-            self.logger.warning('SIGINT (keyboard interrupt) received...')
+            self.logger.status('SIGINT (keyboard interrupt) received...')
             self.stop()
             
     def logging_loop(self):
@@ -209,7 +262,7 @@ class ExampleSmaxService:
                 
         logged_data = self.hardware.logging_action()
 
-        self.logger.warning("Received data")    
+        self.logger.status("Received data")    
         # write values to SMA-X
         # Retry if connection is missing
         try:
@@ -224,14 +277,14 @@ class ExampleSmaxService:
                     atab = self.smax_key
                     skey = key
                 self.smax_client.smax_share(f"{self.smax_table}:{atab}", skey, logged_data[key])
-            self.logger.info(f'Wrote hardware data to SMAX ')
+            self.logger.status(f'Wrote hardware data to SMAX ')
         except SmaxConnectionError:
             self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
             self.connect_to_smax()
             self.smax_logging_action()
             
     def _handle_sigterm(self, sig, frame):
-        self.logger.warning('SIGTERM received...')
+        self.logger.status('SIGTERM received...')
         self.stop()
 
     def stop(self):
@@ -239,17 +292,17 @@ class ExampleSmaxService:
         # Tell systemd that we received the stop signal
         systemd.daemon.notify(STOPPING)
 
-        self.logger.warning('Cleaning up...')
+        self.logger.status('Cleaning up...')
         
         # Clean up the hardware
-        self.logger.warning('Disconnecting hardware...')
+        self.logger.status('Disconnecting hardware...')
         self.hardware.disconnect_hardware()
 
         # Put the service's cleanup code here.
         if self.smax_client:
             self.smax_client.smax_unsubscribe()
             self.smax_client.smax_disconnect()
-            self.logger.warning('SMA-X client disconnected')
+            self.logger.status('SMA-X client disconnected')
         else:
             self.logger.warning('SMA-X client not found, nothing to clean up')
 
