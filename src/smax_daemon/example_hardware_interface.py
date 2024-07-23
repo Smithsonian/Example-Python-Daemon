@@ -120,7 +120,7 @@ class ExampleHardwareInterface:
         
         newrange = message.data
         
-        self.logger.warning(f'{message.origin} set random_base to {newbase}')
+        self.logger.warning(f'{message.origin} set random_range to {newrange}')
         
         if self._hardware:
             try:
