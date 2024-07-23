@@ -98,29 +98,29 @@ class ExampleHardwareInterface:
     def set_random_base_callback(self, message):
         """Callback to be triggered on Pub/Sub for random base value"""
         if self.logger:
-            date = datetime.datetime.fromtimestamp(message.date)
-            self.logger.info(f'Received callback notification for {message.origin} from {message.source} with data {message.data} at {date}')
+            date = message.timestamp
+            self.logger.info(f'Received callback notification for {message.origin} from {message.origin} with data {message.data} at {date}')
         
         newbase = message.data
         
         if self._hardware:
             try:
                 with self._hardware_lock:
-                    self._hardware.base = newbase
+                    self._hardware.random_base = newbase
             except Exception as e: # Except hardware errors
                 self._hardware_error = repr(e)
             
     def set_random_range_callback(self, message):
         """Callback to be triggered on Pub/Sub for random base value"""
         if self.logger:
-            date = datetime.datetime.fromtimestamp(message.date)
-            self.logger.info(f'Received callback notification for {message.origin} from {message.source} with data {message.data} at {date}')
+            date = message.timestamp
+            self.logger.info(f'Received callback notification for {message.origin} from {message.origin} with data {message.data} at {date}')
         
         newrange = message.data
         
         if self._hardware:
             try:
                 with self._hardware_lock:
-                    self._hardware.range = newrange
+                    self._hardware.random_range = newrange
             except Exception as e: # Except hardware errors
                 self._hardware_error = repr(e)

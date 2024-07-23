@@ -20,8 +20,8 @@ daemon_name = "example_smax_daemon"
 from example_hardware_interface import ExampleHardwareInterface as HardwareInterface
 
 # Change between testing and production
-logging_level = logging.DEBUG
-#logging_level = logging.WARNING
+#logging_level = logging.DEBUG
+logging_level = logging.WARNING
 
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
@@ -140,19 +140,21 @@ class ExampleSmaxService:
         service terminates."""
         try:
             if self.smax_client is None:
-                self.smax_client = SmaxRedisClient(redis_ip=self.smax_server, redis_port=self.smax_port, redis_db=self.smax_db, program_name="example_smax_daemon")
+                self.smax_client = SmaxRedisClient(redis_ip=self.smax_server, redis_port=self.smax_port, redis_db=self.smax_db, program_name="example_smax_daemon", \
+                                                    debug=logging_level==logging.DEBUG, logger=self.logger)
             else:
                 self.smax_client.smax_connect_to(self.smax_server, self.smax_port, self.smax_db)
 
-            self.logger.info(f'SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
+            self.logger.info(f'SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
         except SmaxConnectionError as e:
-            self.logger.warning(f'Could not connect to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')    
+            self.logger.warning(f'Could not connect to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')    
             raise e
         
         # Register pubsub channels specified in config["smax_config"]["control_keys"] to the 
         # callbacks specified in the config.
         for k in self.control_keys.keys():
-            self.smax_client.smax_subscribe(join(self.smax_table, self.smax_key, k), getattr(self.hardware, self.control_keys[k]))
+            self.smax_client.smax_subscribe(join(self.smax_table, self.smax_key, k), callback=getattr(self.hardware, self.control_keys[k]))
+            self.logger.debug(f'connected {getattr(self.hardware, self.control_keys[k])} to {join(self.smax_table, self.smax_key, k)}')
         self.logger.info('Subscribed to pubsub notifications')
 
     def run(self):
@@ -198,12 +200,13 @@ class ExampleSmaxService:
         # This will hang until a connection happens - this doesn't
         # cost us anything, as we need an SMA-X connection to
         # to do anything with the hardware.
-        if self.smax_client is None:
-            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
-            self.connect_to_smax()
-                
         # Gather data
         self.logger.debug("In logging action")
+        
+        if self.smax_client is None:
+            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
+            self.connect_to_smax()
+                
         logged_data = self.hardware.logging_action()
 
         self.logger.debug("Received data")    
@@ -223,7 +226,7 @@ class ExampleSmaxService:
                 self.smax_client.smax_share(f"{self.smax_table}:{atab}", skey, logged_data[key])
             self.logger.info(f'Wrote hardware data to SMAX ')
         except SmaxConnectionError:
-            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
+            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
             self.connect_to_smax()
             self.smax_logging_action()
             
@@ -236,18 +239,19 @@ class ExampleSmaxService:
         # Tell systemd that we received the stop signal
         systemd.daemon.notify(STOPPING)
 
+        self.logger.warning('Cleaning up...')
+        
         # Clean up the hardware
-        self.logger.info('Disconnecting hardware...')
+        self.logger.warning('Disconnecting hardware...')
         self.hardware.disconnect_hardware()
 
         # Put the service's cleanup code here.
-        self.logger.info('Cleaning up...')
         if self.smax_client:
             self.smax_client.smax_unsubscribe()
             self.smax_client.smax_disconnect()
-            self.logger.info('SMA-X client disconnected')
+            self.logger.warning('SMA-X client disconnected')
         else:
-            self.logger.error('SMA-X client not found, nothing to clean up')
+            self.logger.warning('SMA-X client not found, nothing to clean up')
 
         # Exit to finally stop the serivce
         sys.exit(0)
