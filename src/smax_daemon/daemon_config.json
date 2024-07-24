@@ -1,0 +1,19 @@
+{
+    "logging_interval":30,
+    "smax_config":{
+        "smax_key":"random_number_generator",
+        "smax_control_keys": {
+            "random_base_control_key":"set_random_base_callback",
+            "random_range_control_key":"set_random_range_callback"
+        }
+    },
+    "logged_data":{
+        "random_number":{"type":"float" },
+        "random_base":{"type":"float" },
+        "random_range":{"type":"float" }
+    },
+    "config":{
+        "random_base":0.0,
+        "random_range":1.0
+    }
+}

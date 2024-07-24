@@ -1,0 +1,22 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools.packages.find]
+# All the following settings are optional:
+where = ['src']  # ['.'] by default
+include = ['*']  # ['*'] by default
+exclude = ['tests*', 
+           'smax_daemon']
+
+[project]
+name = 'example_smax_daemon'
+version = '0.1.0'
+description = 'An Example SMAX Daemon implements in Python'
+readme = 'README.md'
+requires-python = '>=3.7'
+license = {text = 'MIT License'}
+dependencies = [
+    'systemd-python',
+    'smax @ https://github.com/Smithsonian/smax-python/archive/refs/tags/network_failover_testing.zip',
+]
