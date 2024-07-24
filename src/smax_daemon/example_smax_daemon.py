@@ -80,7 +80,7 @@ add_logging_level('STATUS', logging.WARNING+5)
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
 
-from smax import SmaxRedisClient, SmaxConnectionError, join
+from smax import SmaxRedisClient, SmaxConnectionError, join, normalize_pair
 
 def _is_smaxconnectionerror(exception):
     return isinstance(exception, SmaxConnectionError)
@@ -268,15 +268,8 @@ class ExampleSmaxService:
         try:
             for key in logged_data.keys():
                 self.logger.debug(f"key in logged_data.keys(): {key}")
-                if ":" in key:
-                    ls = [self.smax_key]
-                    ls.extend(key.split(":")[0:-1])
-                    atab = ":".join(ls)
-                    skey = key.split(":")[-1]
-                else:
-                    atab = self.smax_key
-                    skey = key
-                self.smax_client.smax_share(f"{self.smax_table}:{atab}", skey, logged_data[key])
+                table, key = normalize_pair(join(self.smax_table, self.smax_key), key)
+                self.smax_client.smax_share(table, key, logged_data[key])
             self.logger.status(f'Wrote hardware data to SMAX ')
         except SmaxConnectionError:
             self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
