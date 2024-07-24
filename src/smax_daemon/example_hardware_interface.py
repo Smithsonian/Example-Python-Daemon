@@ -103,14 +103,17 @@ class ExampleHardwareInterface:
         
         newbase = message.data
         
-        self.logger.status(f'{message.origin} set random_base to {newbase}')
-        
         if self._hardware:
             try:
                 with self._hardware_lock:
                     self._hardware.random_base = newbase
             except Exception as e: # Except hardware errors
                 self._hardware_error = repr(e)
+                if self.logger:
+                    self.logger.error(f'Attempt by {message.origin} to set random_base to {newbase} failed with {self._hardware_error}')
+                
+        if self.logger:
+            self.logger.status(f'{message.origin} set random_range to {newbase}')
             
     def set_random_range_callback(self, message):
         """Callback to be triggered on Pub/Sub for random base value"""
@@ -120,11 +123,14 @@ class ExampleHardwareInterface:
         
         newrange = message.data
         
-        self.logger.status(f'{message.origin} set random_range to {newrange}')
-        
         if self._hardware:
             try:
                 with self._hardware_lock:
                     self._hardware.random_range = newrange
             except Exception as e: # Except hardware errors
                 self._hardware_error = repr(e)
+                if self.logger:
+                    self.logger.error(f'Attempt by {message.origin} to set random_range to {newrange} failed with {self._hardware_error}')
+                
+        if self.logger:
+            self.logger.status(f'{message.origin} set random_range to {newrange}')
