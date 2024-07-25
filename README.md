@@ -19,7 +19,7 @@ psutils
 smax
 
 Installation:
-0 - Install 
+0 - Install system level dependencies
 1 - Create conda environment accessible to smauser to operate the service in
 2 - Switch to conda environment.
 3 - Run pip install in base directory of package source to install the modules
