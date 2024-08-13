@@ -266,10 +266,10 @@ class ExampleSmaxService:
         # write values to SMA-X
         # Retry if connection is missing
         try:
-            for key in logged_data.keys():
-                self.logger.debug(f"key in logged_data.keys(): {key}")
-                table, key = normalize_pair(join(self.smax_table, self.smax_key), key)
-                self.smax_client.smax_share(table, key, logged_data[key])
+            for k in logged_data.keys():
+                self.logger.debug(f"key in logged_data.keys(): {k}")
+                table, key = normalize_pair(join(self.smax_table, self.smax_key), k)
+                self.smax_client.smax_share(table, key, logged_data[k])
             self.logger.status(f'Wrote hardware data to SMAX ')
         except SmaxConnectionError:
             self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')

@@ -1,9 +1,7 @@
 #!/bin/bash
 #
 # Install, enable and run the Example-Python-Daemon.service with systemd
-# as a user service.
 # 
-# This does
 # Paul Grimes
 # 06/29/2023
 #
