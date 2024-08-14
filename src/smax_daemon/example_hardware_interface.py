@@ -1,8 +1,23 @@
-import datetime
+from collections.abc import MutableMapping
 import types
 import threading
 
 from example_smax_hardware import ExampleHardware
+
+def flatten_logged_data(dictionary, parent_key="", separator=":"):
+    """Flatten the logged data dictionary to dictionary keyed by SMA-X table:key strings"""
+    items = []
+    for key, value in dictionary.items():
+        new_key = parent_key + separator + key if parent_key else key
+        if isinstance(value, MutableMapping):
+            if "type" in value.keys() or "function" in value.keys():
+                items.append((new_key, value))
+            else:
+                items.extend(flatten_logged_data(value, new_key, separator=separator).items())
+        else:
+            items.append((new_key, value))
+    return dict(items)
+
 
 class ExampleHardwareInterface:
     """An example daemon interface for communicating with a piece of hardware."""
@@ -25,6 +40,8 @@ class ExampleHardwareInterface:
         if config:
             self.configure(config)
             
+        self.connect_hardware()
+            
     def configure(self, config):
         """Configure the daemon and hardware"""
         
@@ -32,11 +49,14 @@ class ExampleHardwareInterface:
             self._hardware_config = config['config']
             
         if 'logged_data' in config.keys():
-            self._hardware_data = config['logged_data']
+            self._hardware_data = flatten_logged_data(config['logged_data'])
             
         if self._hardware and self._hardware_config:
             with self._hardware_lock:
-                self._hardware.configure(self._hardware_config)
+                try:   
+                    self._hardware.configure(self._hardware_config)
+                except AttributeError:
+                    pass
 
     def connect_hardware(self):
         """Create and initialize hardware communication object."""
@@ -44,16 +64,21 @@ class ExampleHardwareInterface:
             with self._hardware_lock:
                 self._hardware = ExampleHardware(config=self._hardware_config)
                 self._hardware_error = "None"
-                if self._hardware_config:
-                    self._hardware.configure(self._hardware_config)
+                if self._hardware and self._hardware_config:
+                    try:   
+                        self._hardware.configure(self._hardware_config)
+                    except AttributeError:
+                        pass
                 
         except Exception as e: # Hardware connection errors
             self._hardware = None
             self._hardware_error = repr(e)
+            self.logger.error(f"Failed to connect to hardware with error {e}.")
             
     def disconnect_hardware(self):
         self._hardware = None
         self._hardware_error = "disconnected"
+        
         
     def logging_action(self):
         """Get logging data from hardware and share to SMA-X"""
@@ -71,16 +96,29 @@ class ExampleHardwareInterface:
                     logged_data = {}
                     # do logging gets
                     for data in self._hardware_data.keys():
-                        reading = self._hardware.__getattribute__(data)
-                        # We do this next checl so that we can get values from methods as 
-                        # well as attribute values.
-                        # This also suggests that arguments could be
-                        # defined in the configuration json for self._hardware_data
-                        # and passed to the method call. Keyword arguments
-                        # would be simplest.
-                        self.logger.debug(f"Attribute {data}: {type(reading)}")
+                        if "attribute" in self._hardware_data[data]:
+                            attribute = self._hardware_data[data]["attribute"]
+                        elif "function" in self._hardware_data[data]:
+                            attribute = self._hardware_data[data]["function"]
+                        else:
+                            attribute = data.replace(":", ".")
+                        self.logger.debug(f"attempting to get data {attribute}")
+                        reading = self._hardware.__getattribute__(attribute.split(".")[0])
+                        # If this is a compound key, push down to the leaf attribute
+                        if len(attribute.split(".")) > 1:
+                            for d in attribute.split(".")[1:]:
+                                reading = reading.__getattribute__(d)
+                        # If this is a method, call it to get the value
                         if type(reading) is types.MethodType:
-                            reading = self._hardware.__getattribute__(data)()
+                            if "args" in self._hardware_data[data].keys():
+                                args = self._hardware_data[data]["args"]
+                                if type(args) is not list:
+                                    args = [args]
+                                self.logger.debug(f"calling {reading} with arguments {args}.")
+                                reading = reading(*args)
+                            else:
+                                self.logger.debug(f"calling {reading}")
+                                reading = reading()
                         logged_data[data] = reading
                         self.logger.info(f'Got data for hardware {data}: {reading}')
                 logged_data['comm_status'] = "good"

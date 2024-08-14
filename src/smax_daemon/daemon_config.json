@@ -10,7 +10,11 @@
     "logged_data":{
         "random_number":{"type":"float" },
         "random_base":{"type":"float" },
-        "random_range":{"type":"float" }
+        "random_range":{"type":"float" },
+        "random_function":{
+            "function":"add_a_number",
+                            "args":[42],
+                            "type":"float"}
     },
     "config":{
         "random_base":0.0,

@@ -38,7 +38,7 @@ class ExampleHardware:
             time.sleep(self._config_delay)
     
     def random_number(self):
-        """Return a random number"""
+        """A function to return a random number"""
         if self._delay:
             time.sleep(self._delay)
         return random.uniform(self._random_base, self._random_base+self._random_range)
@@ -66,3 +66,7 @@ class ExampleHardware:
         if self._config_delay:
             time.sleep(self._config_delay)
         self._random_range = range
+        
+    def add_a_number(self, number):
+        """An example function"""
+        return self.random_number() + number
