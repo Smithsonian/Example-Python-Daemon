@@ -2,5 +2,5 @@
     "smax_server":"localhost",
     "smax_port":6379,
     "smax_db":0,
-    "smax_table":"test:example_python_daemon"
+    "smax_table":"test:example_smax_daemon"
 }

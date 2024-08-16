@@ -19,5 +19,5 @@ license = {text = 'MIT License'}
 dependencies = [
     'systemd-python',
     'retrying',
-    'smax @ https://github.com/Smithsonian/smax-python/archive/refs/tags/v1.0.1.zip',
+    'smax @ https://github.com/Smithsonian/smax-python/archive/refs/tags/v1.0.2.zip',
 ]

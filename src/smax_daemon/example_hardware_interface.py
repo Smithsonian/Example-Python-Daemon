@@ -10,7 +10,8 @@ def flatten_logged_data(dictionary, parent_key="", separator=":"):
     for key, value in dictionary.items():
         new_key = parent_key + separator + key if parent_key else key
         if isinstance(value, MutableMapping):
-            if "type" in value.keys() or "function" in value.keys():
+            # Detect if we have a leaf node
+            if value is None or len(value) == 0 or "type" in value.keys() or "function" in value.keys():
                 items.append((new_key, value))
             else:
                 items.extend(flatten_logged_data(value, new_key, separator=separator).items())
@@ -41,6 +42,21 @@ class ExampleHardwareInterface:
             self.configure(config)
             
         self.connect_hardware()
+        
+    def __getattr__(self, name):
+        """Override __getattr__ so that we can pass requests for attributes to the
+        wrapped hardware class.
+        
+        This allows automatic access to all the attributes of the hardware that are not explicitly
+        overriden in this interface class.
+        
+        This implementation is a little wasteful, as a direct call for
+        an unimplemented attribute will end up calling self.__getattribute__() twice, and raising
+        AttributeError twice. But we don't intend to use it that way."""
+        try:
+            return self.__getattribute__(name)
+        except AttributeError:
+            return self._hardware.__getattribute__(name)
             
     def configure(self, config):
         """Configure the daemon and hardware"""
@@ -96,18 +112,22 @@ class ExampleHardwareInterface:
                     logged_data = {}
                     # do logging gets
                     for data in self._hardware_data.keys():
-                        if "attribute" in self._hardware_data[data]:
+                        self.logger.debug(f"attempting to get key {data}")
+                        # Check this first, or later tests throw exceptions
+                        if self._hardware_data[data] is None:
+                            attribute = data.replace(":", ".")
+                        elif "attribute" in self._hardware_data[data]:
                             attribute = self._hardware_data[data]["attribute"]
                         elif "function" in self._hardware_data[data]:
                             attribute = self._hardware_data[data]["function"]
                         else:
                             attribute = data.replace(":", ".")
                         self.logger.debug(f"attempting to get data {attribute}")
-                        reading = self._hardware.__getattribute__(attribute.split(".")[0])
+                        reading = self.__getattr__(attribute.split(".")[0])
                         # If this is a compound key, push down to the leaf attribute
                         if len(attribute.split(".")) > 1:
                             for d in attribute.split(".")[1:]:
-                                reading = reading.__getattribute__(d)
+                                reading = reading.__getattr__(d)
                         # If this is a method, call it to get the value
                         if type(reading) is types.MethodType:
                             if "args" in self._hardware_data[data].keys():
@@ -125,6 +145,7 @@ class ExampleHardwareInterface:
                 logged_data['comm_error'] = "None"
             except Exception as e: # Except hardware connection errors
                 self._hardware = None
+                self.logger.debug(f'HardwareInterface.logging_action: connection error {e}')
                 logged_data = {'comm_status':'connection error'}
                 logged_data['comm_error'] = repr(e)
         else:
@@ -132,6 +153,15 @@ class ExampleHardwareInterface:
                            'comm_error':"Not Connected"}
         
         return logged_data
+    
+    @property
+    def random_base_minus_one(self):
+        """Get the random base and return a value 1 lower"""
+        return self._hardware.random_base - 1
+
+    def random_range_plus_one(self):
+        """Get the random range and return a value 1 higher"""
+        return self._hardware.random_range + 1
         
     def set_random_base_callback(self, message):
         """Callback to be triggered on Pub/Sub for random base value"""

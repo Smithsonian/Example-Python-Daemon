@@ -20,8 +20,8 @@ daemon_name = "example_smax_daemon"
 from example_hardware_interface import ExampleHardwareInterface as HardwareInterface
 
 # Change between testing and production
-#logging_level = logging.DEBUG
-logging_level = logging.WARNING
+logging_level = logging.DEBUG
+#logging_level = logging.WARNING
 
 logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
 
@@ -104,7 +104,7 @@ class ExampleSmaxService:
         # The SMAXRedisClient instance
         self.smax_client = None
         
-        # The simulated hardware class
+        # The hardware interface class
         self.hardware = None
 
         # Log that we managed to create the instance
