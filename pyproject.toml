@@ -18,5 +18,6 @@ requires-python = '>=3.7'
 license = {text = 'MIT License'}
 dependencies = [
     'systemd-python',
-    'smax @ https://github.com/Smithsonian/smax-python/archive/refs/tags/network_failover_testing.zip',
+    'retrying',
+    'smax @ https://github.com/Smithsonian/smax-python/archive/refs/tags/v1.0.2.zip',
 ]

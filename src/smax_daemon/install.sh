@@ -1,9 +1,7 @@
 #!/bin/bash
 #
 # Install, enable and run the Example-Python-Daemon.service with systemd
-# as a user service.
 # 
-# This does
 # Paul Grimes
 # 06/29/2023
 #
@@ -30,6 +28,9 @@ then
     cp "./smax_config.json" "$CONFIG"
 fi
 cp "./daemon_config.json" "$CONFIG/example_smax_daemon"
+
+chmod -R 755 $CONFIG
+chown -R smauser:smauser $CONFIG
 
 read -p "Enable example_smax_daemon at this time? " -n 1 -r
 echo    # (optional) move to a new line

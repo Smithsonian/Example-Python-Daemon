@@ -14,4 +14,4 @@ WorkingDirectory=/usr/local/lib/example_smax_daemon
 ExecStart=/usr/local/lib/example_smax_daemon/on_start.sh
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

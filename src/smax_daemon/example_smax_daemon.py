@@ -20,8 +20,8 @@ daemon_name = "example_smax_daemon"
 from example_hardware_interface import ExampleHardwareInterface as HardwareInterface
 
 # Change between testing and production
-#logging_level = logging.DEBUG
-logging_level = logging.WARNING
+logging_level = logging.DEBUG
+#logging_level = logging.WARNING
 
 logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
 
@@ -104,7 +104,7 @@ class ExampleSmaxService:
         # The SMAXRedisClient instance
         self.smax_client = None
         
-        # The simulated hardware class
+        # The hardware interface class
         self.hardware = None
 
         # Log that we managed to create the instance
@@ -266,10 +266,10 @@ class ExampleSmaxService:
         # write values to SMA-X
         # Retry if connection is missing
         try:
-            for key in logged_data.keys():
-                self.logger.debug(f"key in logged_data.keys(): {key}")
-                table, key = normalize_pair(join(self.smax_table, self.smax_key), key)
-                self.smax_client.smax_share(table, key, logged_data[key])
+            for k in logged_data.keys():
+                self.logger.debug(f"key in logged_data.keys(): {k}")
+                table, key = normalize_pair(join(self.smax_table, self.smax_key), k)
+                self.smax_client.smax_share(table, key, logged_data[k])
             self.logger.status(f'Wrote hardware data to SMAX ')
         except SmaxConnectionError:
             self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
