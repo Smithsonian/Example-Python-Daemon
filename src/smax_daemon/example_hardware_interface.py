@@ -1,8 +1,18 @@
 from collections.abc import MutableMapping
 import types
 import threading
+import smax
 
 from example_smax_hardware import ExampleHardware
+
+leaf_keys = [
+    "function",
+    "attribute",
+    "type"
+]
+leaf_keys.extend(smax.optional_metadata)
+
+
 
 def flatten_logged_data(dictionary, parent_key="", separator=":"):
     """Flatten the logged data dictionary to dictionary keyed by SMA-X table:key strings"""
@@ -11,7 +21,7 @@ def flatten_logged_data(dictionary, parent_key="", separator=":"):
         new_key = parent_key + separator + key if parent_key else key
         if isinstance(value, MutableMapping):
             # Detect if we have a leaf node
-            if value is None or len(value) == 0 or "type" in value.keys() or "attribute" in value.keys() or "function" in value.keys():
+            if value is None or len(value) == 0 or any(key for key in leaf_keys if key in value.keys()):
                 items.append((new_key, value))
             else:
                 items.extend(flatten_logged_data(value, new_key, separator=separator).items())
