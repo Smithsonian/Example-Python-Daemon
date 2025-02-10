@@ -7,16 +7,16 @@ Service structure is based on tutorials at https://alexandra-zaharia.github.io/p
 This assumes that the service should run at the system level as smauser, with configuration files stored in `~smauser/wsma_config`.
 
 Requires:
-Development Tools group of RPM packages (on RHEL derived distros)
-equivalent on Debian derived distros
+* Development Tools group of RPM packages (on RHEL derived distros)
+    equivalent on Debian derived distros
     (this is in order to have the components needed to install systemd-python)
-Systemd to be running
-System package systemd-devel or equivalent (provides libsystemd)
+* Systemd to be running
+* System package systemd-devel or equivalent (provides libsystemd)
 
 Python packages:
-systemd-python (in turn requires linux pacakage systemd-devel)
-psutils
-smax
+* systemd-python (in turn requires linux package systemd-devel)
+* psutils
+* smax
 
 Installation:
 0. Install system level dependencies
