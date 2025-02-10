@@ -3,8 +3,11 @@
     "smax_config":{
         "smax_key":"random_number_generator",
         "smax_control_keys": {
-            "random_base_control_key":"set_random_base_callback",
-            "random_range_control_key":"set_random_range_callback"
+            "random_base_control":"set_random_base_callback",
+            "random_range_control":"set_random_range_callback"
+        },
+        "smax_init_keys": {
+            "random_base_control":"random_base"
         }
     },
     "logged_data":{
