@@ -27,7 +27,7 @@ Installation:
 5. Edit `on-start.sh` and `install.sh` to reflect the correct directories
 6. Run `.install.sh` as root
 
-To customize this repo for a particular piece of hardware, first copy it as a template using these [GitHub instructions](https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/copying-an-existing-project).
+To customize this repo for a particular piece of hardware, first copy it as a template using these [GitHub instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/duplicating-a-repository).
 
 Customization:
 1. Bring your own hardware python module to daemonify, set up `pyproject.toml` to install it
