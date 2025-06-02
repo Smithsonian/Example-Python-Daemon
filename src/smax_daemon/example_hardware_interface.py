@@ -32,14 +32,17 @@ def flatten_logged_data(dictionary, parent_key="", separator=":"):
 
 class ExampleHardwareInterface:
     """An example daemon interface for communicating with a piece of hardware."""
-    def __init__(self, config=None, logger=None):
+    def __init__(self, config=None, logger=None, parent=None):
         """Create a new daemon class that carries out monitoring and control of a simulated
         piece of hardware. 
         
         Pass the initial config to the hardware object if given.
         
         Keyword Arguments:
-            config (dict) : dictionary of config values for the hardware and daemon"""
+            config (dict) : dictionary of config values for the hardware and daemon
+            logger (logging.logger) : logger
+            parent (object) : the parent SMAXDaemonObject, used to callback to logging action
+                                after a callback"""
         self._hardware = None
         self._hardware_config = None
         self._hardware_lock = threading.Lock()
@@ -47,6 +50,8 @@ class ExampleHardwareInterface:
         self._hardware_data = {}
         
         self.logger = logger
+        
+        self._parent = parent
         
         if config:
             self.configure(config)
@@ -155,7 +160,7 @@ class ExampleHardwareInterface:
                 logged_data['comm_error'] = "None"
             except Exception as e: # Except hardware connection errors
                 self._hardware = None
-                self.logger.debug(f'HardwareInterface.logging_action: connection error {e}')
+                self.logger.warning(f'HardwareInterface.logging_action: connection error {e}')
                 logged_data = {'comm_status':'connection error'}
                 logged_data['comm_error'] = repr(e)
         else:
@@ -193,6 +198,10 @@ class ExampleHardwareInterface:
         if self.logger:
             self.logger.status(f'{message.origin} set random_range to {newbase}')
             
+        if self._parent:
+            self.logger.debug(f'Calling parent daemons logging action')
+            self._parent.smax_logging_action()
+            
     def set_random_range_callback(self, message):
         """Callback to be triggered on Pub/Sub for random base value"""
         if self.logger:
@@ -212,3 +221,7 @@ class ExampleHardwareInterface:
                 
         if self.logger:
             self.logger.status(f'{message.origin} set random_range to {newrange}')
+            
+        if self._parent:
+            self.logger.debug(f'Calling parent daemons logging action')
+            self._parent.smax_logging_action()
