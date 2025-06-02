@@ -19,12 +19,6 @@ default_config = os.path.expanduser("~smauser/wsma_config/example_smax_daemon/da
 daemon_name = "example_smax_daemon"
 from example_hardware_interface import ExampleHardwareInterface as HardwareInterface
 
-# Change between testing and production
-logging_level = logging.DEBUG
-#logging_level = logging.WARNING
-
-logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
-
 # add a logging level for status output
 def add_logging_level(level_name, level_num, method_name=None):
     """
@@ -76,6 +70,12 @@ def add_logging_level(level_name, level_num, method_name=None):
     setattr(logging, method_name, logToRoot)
     
 add_logging_level('STATUS', logging.WARNING+5)
+
+# Change between testing and production
+#logging_level = logging.DEBUG
+logging_level = logging.STATUS
+
+logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
 
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
@@ -172,7 +172,7 @@ class ExampleSmaxService:
         # Start up code
 
         # Create the hardware interface
-        self.hardware = HardwareInterface(config=self._config, logger=self.logger)
+        self.hardware = HardwareInterface(config=self._config, logger=self.logger, parent=self)
         self.logger.status('Created hardware interface object')
         
         # Create the SMA-X interface

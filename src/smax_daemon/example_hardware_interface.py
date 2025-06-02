@@ -124,6 +124,9 @@ class ExampleHardwareInterface:
         if self._hardware:
             try:
                 with self._hardware_lock:
+                    # Update the hardware, if it's needed to get data
+                    # self._hardware.update()
+                    
                     logged_data = {}
                     # do logging gets
                     for data in self._hardware_data.keys():
@@ -199,7 +202,7 @@ class ExampleHardwareInterface:
             self.logger.status(f'{message.origin} set random_range to {newbase}')
             
         if self._parent:
-            self.logger.debug(f'Calling parent daemons logging action')
+            self.logger.status(f'Calling parent daemons logging action')
             self._parent.smax_logging_action()
             
     def set_random_range_callback(self, message):
@@ -223,5 +226,5 @@ class ExampleHardwareInterface:
             self.logger.status(f'{message.origin} set random_range to {newrange}')
             
         if self._parent:
-            self.logger.debug(f'Calling parent daemons logging action')
+            self.logger.status(f'Calling parent daemons logging action')
             self._parent.smax_logging_action()

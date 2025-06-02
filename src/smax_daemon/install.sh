@@ -6,7 +6,7 @@
 # 06/29/2023
 #
 
-USR_LOCAL_LIB="/usr/local/lib"
+USR_LOCAL_LIB="/opt/wsma"
 INSTALL="$USR_LOCAL_LIB/example_smax_daemon"
 CONFIG="/home/smauser/wsma_config"
 
